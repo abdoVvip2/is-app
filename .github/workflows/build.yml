@@ -1,0 +1,27 @@
+name: Build EXE
+on: [push]
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install electron-builder --save-dev
+
+      - name: Build EXE
+        run: npx electron-builder --win --portable
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: My-Desktop-App
+          path: dist/*.exe

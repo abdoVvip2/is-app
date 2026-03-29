@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متابعة الحضور والديون - كناشي Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f8fafc; --white: #ffffff; --blue: #2563eb;
+            --red: #ef4444; --green: #22c55e; --orange: #f59e0b;
+            --slate: #64748b; --dark: #0f172a; --radius: 18px;
+        }
+        body { font-family: "Segoe UI", Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--dark); line-height: 1.5; }
+        .app-wrapper { max-width: 600px; margin: 0 auto; padding-bottom: 50px; }
+        
+        .ai-dashboard { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 20px; border-radius: var(--radius); margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .stat-box { background: rgba(255,255,255,0.08); padding: 12px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-box small { display: block; color: #94a3b8; font-size: 0.8rem; margin-bottom: 4px; }
+        .stat-box b { font-size: 1.2rem; }
+        .ai-tip { background: rgba(239, 68, 68, 0.12); border-right: 4px solid var(--red); padding: 12px; border-radius: 10px; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+
+        .group-section { background: var(--white); border-radius: var(--radius); margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0; }
+        .group-header { padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
+        .students-list { display: none; padding: 15px; }
+        .students-list.open { display: block; }
+
+        .student-card { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-right: 5px solid var(--green); }
+        .student-card.has-debt { border-right-color: var(--red); background: #fff5f5; }
+        .debt-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; color: white; font-weight: bold; }
+        .debt-badge.paid { background: var(--green); }
+        .debt-badge.unpaid { background: var(--red); }
+
+        .attendance-boxes { display: flex; gap: 10px; justify-content: center; margin: 15px 0; }
+        .box { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #cbd5e1; background: #fff; color: #64748b; }
+        .box.present { background: var(--green); color: white; border-color: var(--green); }
+        .box.absent { background: var(--red); color: white; border-color: var(--red); }
+
+        .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .btn-act { padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; font-family: inherit; }
+        .btn-pay { background: var(--blue); grid-column: span 3; margin-top: 5px; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--white); padding: 25px; border-radius: 24px; width: 90%; max-width: 380px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div class="ai-dashboard">
+        <h3 style="margin:0;"><i class="fas fa-chart-line"></i> التحليل المالي والسيولة</h3>
+        <div class="stats-grid">
+            <div class="stat-box"><small>السيولة (Cash)</small><b id="stat-cash" style="color:#86efac;">0 دج</b></div>
+            <div class="stat-box"><small>التحصيل</small><b id="stat-ratio" style="color:#60a5fa;">0%</b></div>
+            <div class="stat-box"><small>التوقع المالي</small><b id="stat-projection" style="color:#fcd34d;">0 دج</b></div>
+            <div class="stat-box"><small>ربح المقعد</small><b id="stat-avg-seat">0 دج</b></div>
+        </div>
+        <div id="ai-tip-container"></div>
+    </div>
+    <div id="groups-container"></div>
+</div>
+
+<div id="renew-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>تجديد الاشتراك</h3>
+        <p style="color:var(--slate);">انتهت الـ 4 حصص، اختر طريقة الدفع:</p>
+        <button class="btn-act" style="background:var(--green); width:100%; margin-bottom:10px; padding:15px;" onclick="processRenewal(true)">دفع مقدماً (نقداً)</button>
+        <button class="btn-act" style="background:var(--red); width:100%; margin-bottom:10px; padding:15px;" onclick="processRenewal(false)">قيد كدين (حصة بحصة)</button>
+        <button class="btn-act" style="background:var(--slate); width:100%; padding:15px;" onclick="closeModal()">إلغاء</button>
+    </div>
+</div>
+
+<script>
+    const DB_NAME = "kanashi_db";
+    const DB_VERSION = 2;
+    const STORE_STUDENTS = "students";
+    const STORE_GROUPS = "groups";
+    
+    let db = null;
+    let pendingRenewId = null, pendingGroupObj = null;
+    let openGroupId = null;
+
+    // --- IndexedDB Core ---
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+            req.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    function getAll(storeName) {
+        return new Promise(resolve => {
+            const tx = db.transaction(storeName, "readonly");
+            const req = tx.objectStore(storeName).getAll();
+            req.onsuccess = () => resolve(req.result);
+        });
+    }
+
+    function putItem(storeName, item) {
+        return new Promise(resolve => {
+            const tx = db.transaction(storeName, "readwrite");
+            const req = tx.objectStore(storeName).put(item);
+            req.onsuccess = () => resolve();
+        });
+    }
+
+    // --- Logic ---
+    async function analyzeAdvanced() {
+        const students = await getAll(STORE_STUDENTS);
+        let cash = 0, totalDebt = 0;
+        
+        students.forEach(s => {
+            cash += Number(s.paid || 0);
+            totalDebt += Number(s.debt || 0);
+        });
+
+        const projection = cash + totalDebt;
+        document.getElementById("stat-cash").innerText = cash.toLocaleString() + " دج";
+        document.getElementById("stat-projection").innerText = projection.toLocaleString() + " دج";
+        document.getElementById("stat-ratio").innerText = (projection > 0 ? Math.round((cash/projection)*100) : 0) + "%";
+        document.getElementById("stat-avg-seat").innerText = (students.length > 0 ? Math.round(cash/students.length) : 0).toLocaleString() + " دج";
+
+        const tipBox = document.getElementById("ai-tip-container");
+        tipBox.innerHTML = totalDebt > 0 
+            ? `<div class="ai-tip"><i class="fas fa-exclamation-circle"></i> ديون عالقة: ${totalDebt.toLocaleString()} دج.</div>`
+            : `<div class="ai-tip" style="background:rgba(34,197,94,0.1); border-color:var(--green); color:var(--green)"><i class="fas fa-check"></i> الحسابات مضبوطة.</div>`;
+    }
+
+    async function renderUI() {
+        await analyzeAdvanced();
+        const groups = await getAll(STORE_GROUPS);
+        const students = await getAll(STORE_STUDENTS);
+        const container = document.getElementById("groups-container");
+        
+        container.innerHTML = groups.map(g => {
+            const gSt = students.filter(s => s.group === g.name);
+            const isOpen = openGroupId == g.id;
+            
+            const cards = gSt.map(s => {
+                const att = (s.attendance && s.attendance.length === 4) ? s.attendance : ["","","",""];
+                const isD = Number(s.debt || 0) > 0;
+                return `
+                    <div class="student-card ${isD ? 'has-debt' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>${s.name}</b>
+                            <span class="debt-badge ${isD ? 'unpaid' : 'paid'}">${isD ? s.debt+' دج' : 'خالص'}</span>
+                        </div>
+                        <div class="attendance-boxes">
+                            ${att.map((v, i) => `<div class="box ${v}">${i+1}</div>`).join("")}
+                        </div>
+                        <div class="actions">
+                            <button class="btn-act" style="background:var(--green)" onclick="mark(${s.id}, ${g.id}, 'present')">حاضر</button>
+                            <button class="btn-act" style="background:var(--red)" onclick="mark(${s.id}, ${g.id}, 'absent')">غائب</button>
+                            <button class="btn-act" style="background:var(--slate)" onclick="undo(${s.id}, ${g.id})">تراجع</button>
+                            ${isD ? `<button class="btn-act btn-pay" onclick="payDebt(${s.id})">تسوية الدين</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join("") || "<p style='text-align:center; padding:10px; color:var(--slate);'>لا تلاميذ في هذا الفوج</p>";
+
+            return `
+                <div class="group-section">
+                    <div class="group-header" onclick="toggle(${g.id})">
+                        <span>${g.name} (${gSt.length})</span>
+                        <i class="fas fa-chevron-down" style="transform: ${isOpen ? 'rotate(180deg)' : 'none'}"></i>
+                    </div>
+                    <div class="students-list ${isOpen ? 'open' : ''}">${cards}</div>
+                </div>`;
+        }).join("");
+    }
+
+    async function mark(stId, gId, status) {
+        const students = await getAll(STORE_STUDENTS);
+        const groups = await getAll(STORE_GROUPS);
+        const s = students.find(x => x.id === stId);
+        const g = groups.find(x => x.id === gId);
+        
+        if(!s.attendance) s.attendance = ["","","",""];
+        let idx = s.attendance.indexOf("");
+
+        if(idx === -1) {
+            pendingRenewId = stId; 
+            pendingGroupObj = g;
+            document.getElementById("renew-modal").style.display = "flex";
+            return;
+        }
+
+        s.attendance[idx] = status;
+        if(s.paymentMode === "debt") {
+            s.debt = (Number(s.debt)||0) + Math.round(Number(g.price)/4);
+        }
+        
+        await putItem(STORE_STUDENTS, s);
+        renderUI();
+    }
+
+    async function processRenewal(isCash) {
+        const students = await getAll(STORE_STUDENTS);
+        const s = students.find(x => x.id === pendingRenewId);
+        const g = pendingGroupObj;
+
+        s.attendance = ["","","",""];
+        if(isCash) {
+            s.paid = (Number(s.paid)||0) + Number(g.price);
+            s.paymentMode = "cash";
+            s.debt = 0;
+        } else {
+            s.paymentMode = "debt";
+        }
+        
+        await putItem(STORE_STUDENTS, s);
+        closeModal();
+        renderUI();
+    }
+
+    async function undo(stId, gId) {
+        const students = await getAll(STORE_STUDENTS);
+        const groups = await getAll(STORE_GROUPS);
+        const s = students.find(x => x.id === stId);
+        const g = groups.find(x => x.id === gId);
+        
+        if(!s.attendance) return;
+
+        for(let i=3; i>=0; i--) {
+            if(s.attendance[i] !== "") {
+                if(s.paymentMode === "debt") {
+                    s.debt = Math.max(0, (Number(s.debt)||0) - Math.round(Number(g.price)/4));
+                }
+                s.attendance[i] = ""; 
+                break;
+            }
+        }
+        await putItem(STORE_STUDENTS, s);
+        renderUI();
+    }
+
+    async function payDebt(stId) {
+        const students = await getAll(STORE_STUDENTS);
+        const s = students.find(x => x.id === stId);
+        s.paid = (Number(s.paid)||0) + (Number(s.debt)||0);
+        s.debt = 0;
+        s.paymentMode = "cash";
+        await putItem(STORE_STUDENTS, s);
+        renderUI();
+    }
+
+    function toggle(id) {
+        openGroupId = (openGroupId === id) ? null : id;
+        renderUI();
+    }
+
+    function closeModal() { document.getElementById("renew-modal").style.display = "none"; }
+
+    // Init
+    openDB().then(() => renderUI());
+</script>
+</body>
+</html>

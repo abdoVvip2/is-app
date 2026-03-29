@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الأفواج - كناشي Pro</title>
+    <style>
+        :root {
+            --bg: #f8fafc; --white: #ffffff; --blue: #2563eb;
+            --red: #ef4444; --green: #22c55e; --orange: #f59e0b;
+            --slate: #64748b; --dark: #0f172a; --radius: 18px;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--dark); line-height: 1.5; }
+        .app-wrapper { max-width: 500px; margin: 0 auto; padding-bottom: 100px; }
+        
+        .dash-header { background: var(--white); padding: 20px; border-radius: var(--radius); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 4px solid var(--blue); }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-card { background: #f1f5f9; padding: 10px; border-radius: 12px; text-align: center; }
+        .stat-card small { display: block; color: var(--slate); font-size: 0.85rem; margin-bottom: 5px; }
+        .stat-card b { color: var(--blue); font-size: 1.4rem; }
+
+        .group-card { background: var(--white); padding: 20px; border-radius: var(--radius); margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .group-title { font-size: 1.2rem; font-weight: bold; margin: 0 0 10px 0; color: var(--dark); }
+        .group-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem; color: var(--slate); margin-bottom: 15px; }
+        .info-item { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px; border-radius: 8px; }
+
+        .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
+        .btn-icon { border: none; padding: 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+        .btn-icon:active { transform: scale(0.9); }
+        .btn-view { background: #ecfdf5; color: var(--green); }
+        .btn-link { background: #eff6ff; color: var(--blue); }
+        .btn-edit { background: #fff7ed; color: var(--orange); }
+        .btn-del  { background: #fef2f2; color: var(--red); }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.8); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--white); padding: 25px; border-radius: 24px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+        .inp { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-size: 1rem; outline: none; font-family: inherit; }
+        .inp:focus { border-color: var(--blue); }
+        .btn-main { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--blue); color: white; font-weight: bold; cursor: pointer; font-size: 1.1rem; margin-top: 10px; font-family: inherit; }
+
+        .student-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        .student-row:last-child { border: none; }
+        .badge { font-size: 0.8rem; padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-family: inherit; }
+        .bg-blue { background: #dbeafe; color: var(--blue); }
+        .bg-red  { background: #fee2e2; color: var(--red); }
+
+        .fab { position: fixed; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--blue); color: white; border-radius: 20px; border: none; font-size: 28px; box-shadow: 0 10px 15px rgba(37,99,235,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .fab:active { transform: scale(0.9); }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+        <h2 style="margin:0;">📚 إدارة الأفواج والربط</h2>
+    </div>
+
+    <div class="dash-header">
+        <h4 style="margin:0; color:var(--slate);">📊 إحصائيات النظام</h4>
+        <div class="stat-grid">
+            <div class="stat-card"><small>إجمالي الأفواج</small><b id="total-groups-count">0</b></div>
+            <div class="stat-card"><small>تلاميذ مرتبطين</small><b id="total-linked-students">0</b></div>
+        </div>
+    </div>
+
+    <div id="groups-list"></div>
+</div>
+
+<button class="fab" onclick="openGroupModal()">+</button>
+
+<div id="group-modal" class="modal-overlay" onclick="closeAllModals()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 id="modal-title" style="margin-top:0;">إضافة فوج جديد</h3>
+        <input type="hidden" id="edit-id">
+        <input type="text"   id="g-name"  class="inp" placeholder="اسم الفوج (مثال: السنة 4 متوسط)">
+        <input type="number" id="g-price" class="inp" placeholder="سعر الاشتراك (لـ 4 حصص)">
+        <div style="display:flex; gap:10px;">
+            <select id="g-day" class="inp">
+                <option value="">اليوم</option>
+                <option>السبت</option><option>الأحد</option><option>الاثنين</option>
+                <option>الثلاثاء</option><option>الأربعاء</option><option>الخميس</option><option>الجمعة</option>
+            </select>
+            <input type="time" id="g-time" class="inp">
+        </div>
+        <button class="btn-main" onclick="saveGroup()">حفظ الفوج</button>
+        <button onclick="closeAllModals()" style="width:100%;background:none;border:none;margin-top:12px;color:var(--slate);cursor:pointer;font-family:inherit;font-size:1em;">إلغاء</button>
+    </div>
+</div>
+
+<div id="link-student-modal" class="modal-overlay" onclick="closeAllModals()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0;">➕ إضافة تلميذ للفوج</h3>
+        <input type="hidden" id="target-group-name">
+        <input type="text" id="search-student" class="inp" placeholder="🔍 ابحث عن اسم..." onkeyup="renderAvailableStudents()">
+        <div id="available-students" style="margin-top:15px; max-height:300px; overflow-y:auto;"></div>
+    </div>
+</div>
+
+<div id="view-members-modal" class="modal-overlay" onclick="closeAllModals()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 id="view-group-title" style="margin-top:0;">قائمة التلاميذ</h3>
+        <div id="members-area" style="max-height:400px; overflow-y:auto;"></div>
+    </div>
+</div>
+
+<script>
+    // ===================== IndexedDB Config =====================
+    const DB_NAME = "kanashi_db";
+    const DB_VERSION = 2;
+    const STORE_STUDENTS = "students";
+    const STORE_GROUPS = "groups";
+
+    let db = null;
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const database = e.target.result;
+                if (!database.objectStoreNames.contains(STORE_STUDENTS)) {
+                    database.createObjectStore(STORE_STUDENTS, { keyPath: "id" });
+                }
+                if (!database.objectStoreNames.contains(STORE_GROUPS)) {
+                    database.createObjectStore(STORE_GROUPS, { keyPath: "id" });
+                }
+            };
+            req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+            req.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    // Generic DB Helpers
+    function getAll(storeName) {
+        return new Promise((resolve) => {
+            const tx = db.transaction(storeName, "readonly");
+            const req = tx.objectStore(storeName).getAll();
+            req.onsuccess = () => resolve(req.result);
+        });
+    }
+
+    function putItem(storeName, item) {
+        return new Promise((resolve) => {
+            const tx = db.transaction(storeName, "readwrite");
+            const req = tx.objectStore(storeName).put(item);
+            req.onsuccess = () => resolve();
+        });
+    }
+
+    function deleteItem(storeName, id) {
+        return new Promise((resolve) => {
+            const tx = db.transaction(storeName, "readwrite");
+            const req = tx.objectStore(storeName).delete(id);
+            req.onsuccess = () => resolve();
+        });
+    }
+
+    function closeAllModals() {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    }
+
+    // ===================== إدارة الأفواج =====================
+
+    async function openGroupModal(id = null) {
+        document.getElementById('group-modal').style.display = 'flex';
+        if (id) {
+            const groups = await getAll(STORE_GROUPS);
+            const g = groups.find(x => x.id === id);
+            document.getElementById('modal-title').innerText = "تعديل الفوج";
+            document.getElementById('edit-id').value  = g.id;
+            document.getElementById('g-name').value  = g.name;
+            document.getElementById('g-price').value = g.price;
+            document.getElementById('g-day').value   = g.day;
+            document.getElementById('g-time').value  = g.time;
+        } else {
+            document.getElementById('modal-title').innerText = "إضافة فوج جديد";
+            ['edit-id','g-name','g-price','g-time'].forEach(id => document.getElementById(id).value = "");
+            document.getElementById('g-day').value = "";
+        }
+    }
+
+    async function saveGroup() {
+        const name  = document.getElementById('g-name').value.trim();
+        const price = document.getElementById('g-price').value;
+        const day   = document.getElementById('g-day').value;
+        const time  = document.getElementById('g-time').value;
+        const editId = document.getElementById('edit-id').value;
+
+        if (!name || !price || !day || !time) return alert("الرجاء إكمال جميع البيانات!");
+
+        const groups = await getAll(STORE_GROUPS);
+        let targetId = editId ? Number(editId) : Date.now();
+
+        if (editId) {
+            const oldGroup = groups.find(g => g.id === targetId);
+            if (oldGroup.name !== name) {
+                // تحديث اسم الفوج لكل التلاميذ المرتبطين
+                const students = await getAll(STORE_STUDENTS);
+                for (let s of students) {
+                    if (s.group === oldGroup.name) {
+                        s.group = name;
+                        await putItem(STORE_STUDENTS, s);
+                    }
+                }
+            }
+        } else {
+            if (groups.some(g => g.name === name)) return alert("اسم الفوج موجود مسبقاً!");
+        }
+
+        await putItem(STORE_GROUPS, { id: targetId, name, price, day, time });
+        closeAllModals();
+        render();
+    }
+
+    async function deleteGroup(id) {
+        const groups = await getAll(STORE_GROUPS);
+        const target = groups.find(g => g.id === id);
+        if (!confirm(`هل أنت متأكد من حذف ${target.name}؟`)) return;
+
+        const students = await getAll(STORE_STUDENTS);
+        for (let s of students) {
+            if (s.group === target.name) {
+                s.group = "غير محدد";
+                await putItem(STORE_STUDENTS, s);
+            }
+        }
+        await deleteItem(STORE_GROUPS, id);
+        render();
+    }
+
+    // ===================== ربط التلاميذ =====================
+
+    function openLinkModal(groupName) {
+        document.getElementById('target-group-name').value = groupName;
+        document.getElementById('search-student').value = "";
+        document.getElementById('link-student-modal').style.display = 'flex';
+        renderAvailableStudents();
+    }
+
+    async function renderAvailableStudents() {
+        const groupName  = document.getElementById('target-group-name').value;
+        const searchTerm = document.getElementById('search-student').value.toLowerCase();
+        const container  = document.getElementById('available-students');
+        
+        let students = await getAll(STORE_STUDENTS);
+        if (searchTerm) students = students.filter(s => s.name.toLowerCase().includes(searchTerm));
+
+        container.innerHTML = students.length ? students.map(s => {
+            const inGroup = s.group === groupName;
+            return `<div class="student-row">
+                <span>
+                    ${s.name}
+                    ${inGroup ? '<span style="color:var(--green);font-size:0.8em;"> ✓ مضاف هنا</span>' : ''}
+                </span>
+                <button class="badge ${inGroup ? 'bg-red' : 'bg-blue'}"
+                    onclick="linkToGroup(${s.id}, '${inGroup ? 'غير محدد' : groupName}')">
+                    ${inGroup ? 'إلغاء' : 'إضافة'}
+                </button>
+            </div>`;
+        }).join("") : "<p style='text-align:center;color:var(--slate);padding:20px;'>لا يوجد تلاميذ</p>";
+    }
+
+    async function linkToGroup(stId, groupName) {
+        const students = await getAll(STORE_STUDENTS);
+        const s = students.find(x => x.id === stId);
+        if (s) {
+            s.group = groupName;
+            await putItem(STORE_STUDENTS, s);
+            renderAvailableStudents();
+            render();
+        }
+    }
+
+    // ===================== عرض أعضاء الفوج =====================
+
+    async function renderMembers(groupName) {
+        const allSt = await getAll(STORE_STUDENTS);
+        const students = allSt.filter(s => s.group === groupName);
+        document.getElementById('view-group-title').innerText = `👥 تلاميذ ${groupName}`;
+        document.getElementById('members-area').innerHTML = students.length
+            ? students.map(s => `
+                <div class="student-row">
+                    <b>${s.name}</b>
+                    <button class="btn-icon btn-del" onclick="removeFromGroup(${s.id},'${groupName}')" style="padding:8px; font-size:1em;">🗑️</button>
+                </div>`).join("")
+            : "<p style='text-align:center;padding:20px;color:var(--slate);'>لا يوجد تلاميذ في هذا الفوج.</p>";
+        document.getElementById('view-members-modal').style.display = 'flex';
+    }
+
+    async function removeFromGroup(stId, groupName) {
+        if (!confirm("إزالة التلميذ من هذا الفوج؟")) return;
+        const students = await getAll(STORE_STUDENTS);
+        const s = students.find(x => x.id === stId);
+        if (s) {
+            s.group = "غير محدد";
+            await putItem(STORE_STUDENTS, s);
+            renderMembers(groupName);
+            render();
+        }
+    }
+
+    // ===================== العرض الرئيسي =====================
+
+    async function render() {
+        const groups  = await getAll(STORE_GROUPS);
+        const allSt   = await getAll(STORE_STUDENTS);
+        const container = document.getElementById('groups-list');
+        let linkedCount = 0;
+
+        container.innerHTML = groups.length ? groups.map(g => {
+            const members = allSt.filter(s => s.group === g.name);
+            linkedCount += members.length;
+            return `
+            <div class="group-card">
+                <h3 class="group-title">📖 ${g.name}</h3>
+                <div class="group-info-grid">
+                    <div class="info-item">📅 ${g.day}</div>
+                    <div class="info-item">🕐 ${g.time}</div>
+                    <div class="info-item">💰 ${g.price} دج</div>
+                    <div class="info-item">👥 ${members.length} تلاميذ</div>
+                </div>
+                <div class="action-grid">
+                    <button class="btn-icon btn-view" onclick="renderMembers('${g.name}')">📋</button>
+                    <button class="btn-icon btn-link" onclick="openLinkModal('${g.name}')">➕</button>
+                    <button class="btn-icon btn-edit" onclick="openGroupModal(${g.id})">✏️</button>
+                    <button class="btn-icon btn-del"  onclick="deleteGroup(${g.id})">🗑️</button>
+                </div>
+            </div>`;
+        }).join("") : "<p style='text-align:center;padding:40px 0;color:var(--slate);'>لا توجد أفواج.</p>";
+
+        document.getElementById('total-groups-count').innerText   = groups.length;
+        document.getElementById('total-linked-students').innerText = linkedCount;
+    }
+
+    // التشغيل
+    openDB().then(() => render());
+</script>
+</body>
+</html>

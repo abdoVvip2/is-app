@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>تطبيق كناشي - الرئيسية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f4f6f9; --white: #ffffff; --blue: #2d8cf0;
+            --green: #10b981; --orange: #f59e0b; --slate: #64748b;
+            --red-bg: #fee2e2; --red-text: #b91c1c;
+        }
+
+        body { font-family: "Segoe UI", Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        #appContainer { display: none; width: 100%; max-width: 450px; }
+
+        /* نافذة الترحيب والشرح */
+        #nameModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.96); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-box {
+            background: var(--white); padding: 30px; border-radius: 25px; width: 88%; max-width: 360px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .modal-box i { font-size: 3rem; color: var(--blue); margin-bottom: 15px; }
+        .modal-box h3 { margin: 10px 0; color: #1e293b; font-size: 1.4rem; }
+        .modal-box p { font-size: 0.9rem; color: var(--slate); line-height: 1.6; margin-bottom: 20px; }
+        .modal-box input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #e2e8f0; border-radius: 12px; text-align: center; font-size: 1rem; outline: none; }
+        .modal-box button { background: var(--blue); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+
+        /* الهيدر والكروت */
+        .card { background: var(--white); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 1.15rem; color: #1e293b; }
+        .header p { margin: 4px 0 0 0; font-size: 0.8rem; color: var(--slate); }
+
+        .next-session { border-right: 6px solid var(--blue); background: #f0f7ff; display: flex; justify-content: space-between; align-items: center; }
+        .next-session span { font-size: 0.75rem; color: var(--blue); font-weight: 800; text-transform: uppercase; }
+        .next-session h3 { margin: 5px 0 0 0; font-size: 1rem; color: #1e293b; }
+
+        /* الخزينة والرسم البياني */
+        .treasury { text-align: center; }
+        .treasury p { color: var(--slate); margin: 0; font-size: 0.9rem; }
+        .treasury h1 { margin: 10px 0; font-size: 2.2rem; font-weight: 800; color: #0f172a; }
+        .treasury h1 span { font-size: 0.5em; color: #94a3b8; margin-right: 5px; }
+
+        .chart { display: flex; justify-content: space-around; align-items: flex-end; height: 70px; margin-top: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; }
+        .bar { width: 15%; background: #e2e8f0; border-radius: 6px 6px 2px 2px; height: 10%; transition: all 0.8s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+        .bar.active { background: var(--blue); }
+
+        /* الشبكة */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .grid-item { background: var(--white); padding: 22px; border-radius: 20px; text-align: center; text-decoration: none; color: inherit; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: 0.2s; }
+        .grid-item:active { transform: scale(0.95); background: #f8fafc; }
+        .grid-item i { font-size: 1.8rem; margin-bottom: 10px; display: block; }
+        .grid-item span { font-weight: bold; font-size: 0.9rem; color: #334155; }
+
+        .note-card { background: var(--red-bg); color: var(--red-text); border: 1px solid #fecaca; display: flex; align-items: center; padding: 16px; border-radius: 18px; cursor: pointer; }
+        .note-card i { font-size: 1.4rem; margin-left: 12px; }
+        .note-card p { margin: 0; font-size: 0.85rem; font-weight: 600; flex: 1; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="nameModal">
+        <div class="modal-box">
+            <i class="fas fa-rocket"></i>
+            <h3>شكراً لاختيارك كناشي Pro</h3>
+            <p>أهلاً بك أستاذنا الكريم. هذا التطبيق صُمم خصيصاً ليخلصك من تعب الأوراق ويجعل إدارة تلاميذك وحساباتك أكثر دقة وسهولة.</p>
+            <input type="text" id="userNameInput" placeholder="اكتب اسمك هنا (مثلاً: أستاذ علي)">
+            <button onclick="saveUserAndStart()">بدء الاستخدام</button>
+        </div>
+    </div>
+
+    <div id="appContainer">
+        <div class="card header">
+            <div>
+                <h2>أهلاً، <span id="userNameLabel">...</span></h2>
+                <p id="currentDate"></p>
+            </div>
+            <div style="background: #fff3cd; color: #f59e0b; padding: 10px; border-radius: 14px;">
+                <i class="fas fa-star"></i>
+            </div>
+        </div>
+
+        <div class="card next-session">
+            <div>
+                <span>الفوج القادم اليوم:</span>
+                <h3 id="sessionLabel">تحقق...</h3>
+            </div>
+            <i class="far fa-clock" style="color: #94a3b8; font-size: 1.2rem;"></i>
+        </div>
+
+        <div class="card treasury">
+            <p>إجمالي المدخول المحصل</p>
+            <h1 id="profitLabel">0 <span>دج</span></h1>
+            
+            <div class="chart" id="mainChart">
+                <div class="bar" style="height: 20%"></div>
+                <div class="bar" style="height: 45%"></div>
+                <div class="bar active" id="currentBar" style="height: 10%"></div>
+                <div class="bar" style="height: 30%"></div>
+                <div class="bar" style="height: 60%"></div>
+            </div>
+            <small style="color: var(--slate); font-size: 0.7rem; margin-top: 8px; display: block;">مقارنة النشاط المالي (آخر 5 فترات)</small>
+        </div>
+
+        <div class="grid">
+            <a href="students.html" class="grid-item"><i class="fas fa-user-graduate" style="color: var(--blue);"></i><span>تلاميذي</span></a>
+            <a href="analytics.html" class="grid-item"><i class="fas fa-chart-pie" style="color: #6366f1;"></i><span>المالية</span></a>
+            <a href="groups.html" class="grid-item"><i class="fas fa-calendar-alt" style="color: var(--orange);"></i><span>الأفواج</span></a>
+            <a href="subs.html" class="grid-item"><i class="fas fa-file-signature" style="color: #a855f7;"></i><span>التسجيلات</span></a>
+        </div>
+
+        <div class="note-card" onclick="editQuickNote()">
+            <i class="fas fa-thumbtack"></i>
+            <p id="noteLabel">ملاحظة سريعة: اضغط هنا لكتابة تنبيه مهم...</p>
+        </div>
+    </div>
+
+    <script>
+        const DB_NAME = "kanashi_db";
+        const DB_VERSION = 2; // التأكيد على الإصدار 2
+        let db = null;
+
+        function openDB() {
+            return new Promise((resolve) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains("students")) d.createObjectStore("students", { keyPath: "id" });
+                    if (!d.objectStoreNames.contains("groups")) d.createObjectStore("groups", { keyPath: "id" });
+                    if (!d.objectStoreNames.contains("expenses")) d.createObjectStore("expenses", { keyPath: "id" });
+                };
+                req.onsuccess = (e) => { db = e.target.result; resolve(); };
+            });
+        }
+
+        async function getData(store) {
+            return new Promise(res => {
+                const tx = db.transaction(store, "readonly");
+                const req = tx.objectStore(store).getAll();
+                req.onsuccess = () => res(req.result);
+            });
+        }
+
+        async function init() {
+            const name = localStorage.getItem("kanashi_user_name");
+            if (!name) {
+                document.getElementById("nameModal").style.display = "flex";
+                return;
+            }
+            document.getElementById("userNameLabel").innerText = name;
+            document.getElementById("appContainer").style.display = "block";
+            await openDB();
+            loadDashboard();
+        }
+
+        async function loadDashboard() {
+            const students = await getData("students");
+            const groups = await getData("groups");
+            
+            // 1. تحديث الخزينة
+            let totalPaid = 0;
+            students.forEach(s => totalPaid += Number(s.paid || 0));
+            document.getElementById("profitLabel").innerHTML = `${totalPaid.toLocaleString()} <span>دج</span>`;
+
+            // 2. تحديث الرسم البياني (ديناميكياً بناءً على التحصيل)
+            if(totalPaid > 0) {
+                const currentBar = document.getElementById("currentBar");
+                // جعل الـ Bar الحالي يعكس نسبة الدفع (تجريبياً)
+                let height = Math.min(90, (totalPaid / 50000) * 100); 
+                currentBar.style.height = (height + 10) + "%";
+            }
+
+            // 3. الفوج القادم
+            const dayMap = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+            const today = dayMap[new Date().getDay()];
+            const nextG = groups.find(g => g.days && g.days.includes(today));
+            document.getElementById("sessionLabel").innerText = nextG ? `${nextG.name} (${nextG.time})` : "لا دروس مجدولة اليوم";
+
+            // 4. التاريخ والملاحظات
+            document.getElementById("currentDate").innerText = new Date().toLocaleDateString("ar-DZ", { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById("noteLabel").innerText = localStorage.getItem("kanashi_quick_note") || "اضغط لإضافة ملاحظة سريعة...";
+        }
+
+        window.saveUserAndStart = function() {
+            const val = document.getElementById("userNameInput").value.trim();
+            if(val) { localStorage.setItem("kanashi_user_name", val); location.reload(); }
+        };
+
+        window.editQuickNote = function() {
+            const old = document.getElementById("noteLabel").innerText;
+            const n = prompt("تعديل الملاحظة:", old);
+            if(n) { localStorage.setItem("kanashi_quick_note", n); document.getElementById("noteLabel").innerText = n; }
+        };
+
+        init();
+    </script>
+</body>
+</html>

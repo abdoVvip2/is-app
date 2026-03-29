@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق كناشي - الدخول</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: "Segoe UI", sans-serif; background: #f0f2f5; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+        h1 { color: #1e3a8a; margin-bottom: 10px; }
+        .info-box { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #bae6fd; }
+        .info-box p { color: #0369a1; margin: 0 0 10px 0; font-weight: bold; }
+        .fb-link { display: inline-block; background: #1877f2; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9em; width: 80%; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; text-align: center; font-size: 1.1em; }
+        .btn-verify { background: #2563eb; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .error-msg { color: #dc2626; font-weight: bold; margin-top: 10px; display: none; }
+        
+        /* تأثيرات النجاح */
+        .success-area { display: none; margin-top: 20px; }
+        .success-icon { color: #16a34a; font-size: 3em; margin-bottom: 10px; animation: popIn 0.5s ease-out; }
+        .success-text { color: #15803d; font-weight: bold; font-size: 1.2em; }
+        @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        
+        #loading { display: none; color: #64748b; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h1>تطبيق كناشي</h1>
+    
+    <div class="info-box">
+        <p>لست مشتركاً في التطبيق بعد؟</p>
+        <a href="https://www.facebook.com/bouhlam.tenes" target="_blank" class="fb-link">
+            <i class="fab fa-facebook"></i> تواصل مع المطور
+        </a>
+    </div>
+
+    <div id="loginForm">
+        <input type="text" id="keyCode" placeholder="أدخل كود الاشتراك هنا">
+        <button class="btn-verify" onclick="checkSubscription()">دخول</button>
+        <div id="errorMsg" class="error-msg">الكود خاطئ أو منتهي الصلاحية.</div>
+        <div id="loading">جاري التحقق من السيرفر...</div>
+    </div>
+
+    <div id="successArea" class="success-area">
+        <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="success-text">شكراً لاشتراكك! جاري تحويلك...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, get, child, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDGRXACLgFqr7iyyO_S_Ae-XBUWLUpx3Ek",
+        authDomain: "tafasilo-af613.firebaseapp.com",
+        projectId: "tafasilo-af613",
+        databaseURL: "https://tafasilo-af613-default-rtdb.firebaseio.com",
+        storageBucket: "tafasilo-af613.firebasestorage.app",
+        messagingSenderId: "161686251966",
+        appId: "1:161686251966:web:2ee3ccb3bc5163bbb171ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // فحص التخزين المحلي فور فتح الصفحة
+    window.onload = async () => {
+        const savedCode = localStorage.getItem("kanashi_code");
+        if (savedCode) {
+            document.getElementById("loginForm").style.display = "none";
+            document.getElementById("loading").style.display = "block";
+            await validateWithServer(savedCode, true);
+        }
+    };
+
+    window.checkSubscription = async () => {
+        const inputKey = document.getElementById("keyCode").value.trim();
+        if (!inputKey) return;
+        
+        document.getElementById("errorMsg").style.display = "none";
+        await validateWithServer(inputKey, false);
+    };
+
+    async function validateWithServer(code, isAutoLogin) {
+        try {
+            const dbRef = ref(db);
+            const path = "licenses/" + code;
+            const snapshot = await get(child(dbRef, path));
+
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if (Date.now() > data.expiresAt) {
+                    await remove(ref(db, path));
+                    handleFailure(isAutoLogin);
+                } else {
+                    handleSuccess(code);
+                }
+            } else {
+                handleFailure(isAutoLogin);
+            }
+        } catch (error) {
+            alert("خطأ في الاتصال بالخادم.");
+            handleFailure(isAutoLogin);
+        }
+    }
+
+    function handleSuccess(code) {
+        localStorage.setItem("kanashi_code", code);
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("successArea").style.display = "block";
+        setTimeout(() => {
+            window.location.href = "home.html";
+        }, 2000); // تأخير ثانيتين لرؤية الجمالية
+    }
+
+    function handleFailure(isAutoLogin) {
+        localStorage.removeItem("kanashi_code");
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("loginForm").style.display = "block";
+        if (!isAutoLogin) {
+            document.getElementById("errorMsg").style.display = "block";
+        }
+    }
+</script>
+</body>
+</html>

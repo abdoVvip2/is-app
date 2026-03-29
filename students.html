@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة التلاميذ - كناشي Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --white: #ffffff;
+            --blue: #2563eb;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --slate: #64748b;
+        }
+        body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
+        .app-wrapper { width: 100%; max-width: 450px; margin: 0 auto; padding-bottom: 110px; }
+        .top-nav { display: flex; align-items: center; margin-bottom: 15px; gap: 15px; }
+        .back-link { background: var(--white); border: none; width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); color: #1e293b; text-decoration: none; transition: 0.2s; }
+        .back-link:active { transform: scale(0.9); }
+        .search-bar { background: var(--white); border-radius: 18px; padding: 12px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px; margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.02); }
+        .search-bar input { flex: 1; border: none; outline: none; font-size: 1.05em; background: transparent; color: #1e293b; font-family: inherit; }
+        .search-bar i { color: var(--slate); font-size: 1.1em; }
+        .student-card { background: var(--white); padding: 20px; border-radius: 24px; margin-bottom: 18px; box-shadow: 0 6px 15px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.8); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .info h4 { margin: 0; font-size: 1.2em; color: #1e293b; font-weight: 700; }
+        .info p { margin: 8px 0 0; font-size: 0.9em; color: var(--slate); display: flex; align-items: center; gap: 8px; }
+        .debt-status { margin-top: 12px; display: inline-flex; align-items: center; padding: 5px 14px; border-radius: 12px; font-size: 0.85em; font-weight: 600; }
+        .status-danger { background: #fee2e2; color: #b91c1c; }
+        .status-success { background: #dcfce7; color: #15803d; }
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); gap: 10px; margin-top: 18px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+        .btn-op { height: 50px; border: none; border-radius: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2em; transition: all 0.2s ease; text-decoration: none; }
+        .btn-op:active { transform: translateY(2px); opacity: 0.8; }
+        .btn-wa { background: #e8faf0; color: #16a34a; }
+        .btn-ph { background: #eff6ff; color: #2563eb; }
+        .btn-ar { background: #fff7ed; color: #c2410c; }
+        .btn-ed { background: #f8fafc; color: #475569; border: 1px solid #f1f5f9; }
+        .btn-dl { background: #fef2f2; color: #dc2626; }
+        .fab { position: fixed; bottom: 35px; left: 30px; width: 68px; height: 68px; background: var(--blue); color: white; border-radius: 22px; border: none; font-size: 26px; box-shadow: 0 12px 24px rgba(37,99,235,0.3); cursor: pointer; z-index: 1000; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .fab:active { transform: scale(0.85) rotate(90deg); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.7); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .modal-content { background: white; padding: 30px; border-radius: 28px; width: 90%; max-width: 380px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .modal-content h3 { margin: 0 0 20px; text-align: center; font-size: 1.4em; color: #0f172a; }
+        .inp { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #f1f5f9; border-radius: 16px; box-sizing: border-box; font-size: 1em; outline: none; transition: 0.2s; font-family: inherit; }
+        .inp:focus { border-color: var(--blue); background: #f8faff; }
+        .btn-submit { background: var(--blue); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 1.1em; box-shadow: 0 4px 12px rgba(37,99,235,0.2); font-family: inherit; }
+        #archive-modal .modal-content { max-width: 440px; padding: 25px; }
+        .archive-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+        .archive-info { background: #f8fafc; border-radius: 20px; padding: 18px; margin-bottom: 20px; }
+        .archive-info p { margin: 8px 0; display: flex; justify-content: space-between; font-size: 0.95em; }
+        .archive-body { max-height: 50vh; overflow-y: auto; padding-right: 5px; }
+        .history-item { background: #fff; border: 1px solid #f1f5f9; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+        .loading { text-align: center; padding: 40px; color: var(--slate); }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div class="top-nav">
+        <a href="home.html" class="back-link"><i class="fas fa-chevron-right"></i></a>
+        <h2 style="margin: 0; font-size: 1.4em;">قائمة التلاميذ</h2>
+    </div>
+
+    <div class="search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-input" placeholder="ابحث عن تلميذ..." onkeyup="filterStudents()">
+    </div>
+
+    <div id="list"><div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div></div>
+</div>
+
+<button class="fab" onclick="openModal()"><i class="fas fa-plus"></i></button>
+
+<!-- مودال الإضافة/التعديل -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">تلميذ جديد</h3>
+        <input type="hidden" id="editId">
+        <input type="text" id="name" class="inp" placeholder="الاسم الكامل">
+        <input type="number" id="phone" class="inp" placeholder="رقم هاتف ولي الأمر (اختياري)">
+        <select id="group" class="inp"></select>
+        <button class="btn-submit" onclick="save()">حفظ التلميذ</button>
+        <button onclick="closeModal()" style="width:100%; background:none; border:none; margin-top:15px; color:var(--slate); cursor:pointer; font-family:inherit; font-size:1em;">إلغاء</button>
+    </div>
+</div>
+
+<!-- مودال الأرشيف -->
+<div id="archive-modal" class="modal">
+    <div class="modal-content">
+        <div class="archive-header">
+            <h3 id="archive-name" style="margin:0;"></h3>
+            <button onclick="closeArchive()" style="background:none; border:none; font-size:1.5em; color:var(--slate); cursor:pointer;">&times;</button>
+        </div>
+        <div id="archive-info" class="archive-info"></div>
+        <div id="archive-body" class="archive-body"></div>
+    </div>
+</div>
+
+<script>
+// ==================== IndexedDB Setup ====================
+const DB_NAME = "kanashi_db";
+const DB_VERSION = 2;
+const STORE_STUDENTS = "students";
+const STORE_GROUPS = "groups";
+
+let db = null;
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+        req.onupgradeneeded = (e) => {
+            const database = e.target.result;
+
+            // مخزن التلاميذ — المفتاح id
+            if (!database.objectStoreNames.contains(STORE_STUDENTS)) {
+                const store = database.createObjectStore(STORE_STUDENTS, { keyPath: "id" });
+                store.createIndex("name", "name", { unique: false });
+                store.createIndex("group", "group", { unique: false });
+            }
+
+            // مخزن الأفواج
+            if (!database.objectStoreNames.contains(STORE_GROUPS)) {
+                const gs = database.createObjectStore(STORE_GROUPS, { keyPath: "name" });
+                // أفواج افتراضية
+                gs.transaction.oncomplete = () => {
+                    const tx = database.transaction(STORE_GROUPS, "readwrite");
+                    ["فوج A", "فوج B", "فوج C"].forEach(g => tx.objectStore(STORE_GROUPS).add({ name: g }));
+                };
+            }
+        };
+
+        req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+// ==================== CRUD التلاميذ ====================
+
+function getAllStudents() {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_STUDENTS, "readonly");
+        const req = tx.objectStore(STORE_STUDENTS).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+function getStudent(id) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_STUDENTS, "readonly");
+        const req = tx.objectStore(STORE_STUDENTS).get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+function putStudent(student) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_STUDENTS, "readwrite");
+        const req = tx.objectStore(STORE_STUDENTS).put(student);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+function deleteStudent(id) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_STUDENTS, "readwrite");
+        const req = tx.objectStore(STORE_STUDENTS).delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// ==================== CRUD الأفواج ====================
+
+function getAllGroups() {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_GROUPS, "readonly");
+        const req = tx.objectStore(STORE_GROUPS).getAll();
+        req.onsuccess = () => resolve(req.result.map(g => g.name));
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// ==================== واجهة المستخدم ====================
+
+async function populateGroups(selectedValue = "") {
+    const select = document.getElementById("group");
+    const groups = await getAllGroups();
+    select.innerHTML = '<option value="غير محدد">اختر الفوج</option>';
+    groups.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g;
+        if (g === selectedValue) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+function openModal(id = null) {
+    document.getElementById("modal").style.display = "flex";
+    if (id) {
+        getStudent(id).then(s => {
+            document.getElementById("modalTitle").innerText = "تعديل البيانات";
+            document.getElementById("editId").value = s.id;
+            document.getElementById("name").value = s.name;
+            document.getElementById("phone").value = s.phone || "";
+            populateGroups(s.group);
+        });
+    } else {
+        document.getElementById("modalTitle").innerText = "إضافة تلميذ";
+        document.getElementById("editId").value = "";
+        document.getElementById("name").value = "";
+        document.getElementById("phone").value = "";
+        populateGroups();
+    }
+}
+
+function closeModal() { document.getElementById("modal").style.display = "none"; }
+
+async function save() {
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const group = document.getElementById("group").value;
+    const editId = document.getElementById("editId").value;
+
+    if (!name) { alert("الاسم مطلوب!"); return; }
+
+    if (editId) {
+        const s = await getStudent(Number(editId));
+        await putStudent({ ...s, name, phone, group });
+    } else {
+        await putStudent({
+            id: Date.now(),
+            name,
+            phone,
+            group,
+            paid: 0,
+            debt: 0,
+            registeredAt: Date.now(),
+            history: []
+        });
+    }
+
+    closeModal();
+    render();
+}
+
+async function removeStudent(id) {
+    if (confirm("هل تريد حذف هذا التلميذ نهائياً؟")) {
+        await deleteStudent(id);
+        render();
+    }
+}
+
+async function openArchive(id) {
+    const s = await getStudent(id);
+    if (!s) return;
+
+    document.getElementById("archive-name").innerText = s.name;
+    const regDate = new Date(s.registeredAt).toLocaleDateString("ar-DZ");
+    const debtColor = s.debt > 0 ? "#ef4444" : "#22c55e";
+
+    document.getElementById("archive-info").innerHTML = `
+        <p><span>الفوج:</span> <strong>${s.group}</strong></p>
+        <p><span>تاريخ البدء:</span> <strong>${regDate}</strong></p>
+        <p><span>إجمالي المدفوع:</span> <strong>${s.paid} دج</strong></p>
+        <p><span>الدين الحالي:</span> <strong style="color:${debtColor}">${s.debt} دج</strong></p>
+    `;
+
+    const body = document.getElementById("archive-body");
+    if (!s.history || s.history.length === 0) {
+        body.innerHTML = "<div style='text-align:center; padding:30px; color:#94a3b8;'>لا توجد عمليات سابقة</div>";
+    } else {
+        body.innerHTML = [...s.history].reverse().map(h => `
+            <div class="history-item">
+                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                    <span>${new Date(h.date).toLocaleDateString("ar-DZ")}</span>
+                    <span style="color:#22c55e;">+${h.amount} دج</span>
+                </div>
+                <div style="font-size:0.85em; color:#64748b; margin-top:5px;">${h.note || "دفعة نقدية"}</div>
+            </div>
+        `).join("");
+    }
+
+    document.getElementById("archive-modal").style.display = "flex";
+}
+
+function closeArchive() { document.getElementById("archive-modal").style.display = "none"; }
+
+// البحث
+async function filterStudents() {
+    const term = document.getElementById("search-input").value.toLowerCase().trim();
+    const all = await getAllStudents();
+    const filtered = term ? all.filter(s => s.name.toLowerCase().includes(term)) : all;
+    renderList(filtered);
+}
+
+// العرض
+function renderList(students) {
+    const container = document.getElementById("list");
+
+    if (students.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:80px 20px;">
+                <i class="fas fa-user-slash" style="font-size:4em; color:#cbd5e1; margin-bottom:15px; display:block;"></i>
+                <p style="color:#64748b;">لا يوجد تلاميذ مضافين حالياً</p>
+            </div>`;
+        return;
+    }
+
+    // ترتيب: الديون أولاً
+    const sorted = [...students].sort((a, b) => (b.debt || 0) - (a.debt || 0));
+
+    container.innerHTML = sorted.map(s => `
+        <div class="student-card">
+            <div class="card-header">
+                <div class="info">
+                    <h4>${s.name}</h4>
+                    <p><i class="fas fa-users"></i> ${s.group}</p>
+                    <div class="debt-status ${s.debt > 0 ? "status-danger" : "status-success"}">
+                        ${s.debt > 0 ? "دين: " + s.debt + " دج" : "الحساب خالص ✓"}
+                    </div>
+                </div>
+            </div>
+            <div class="action-grid">
+                ${s.phone ? `
+                    <a href="https://wa.me/${s.phone}" class="btn-op btn-wa" title="واتساب">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="tel:${s.phone}" class="btn-op btn-ph" title="اتصال">
+                        <i class="fas fa-phone-alt"></i>
+                    </a>
+                ` : ""}
+                <button class="btn-op btn-ar" onclick="openArchive(${s.id})" title="الأرشيف">
+                    <i class="fas fa-history"></i>
+                </button>
+                <button class="btn-op btn-ed" onclick="openModal(${s.id})" title="تعديل">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+                <button class="btn-op btn-dl" onclick="removeStudent(${s.id})" title="حذف">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+    `).join("");
+}
+
+async function render() {
+    const students = await getAllStudents();
+    renderList(students);
+}
+
+// ==================== التشغيل ====================
+openDB().then(() => render()).catch(err => {
+    document.getElementById("list").innerHTML = `<div class="loading" style="color:red;">خطأ في قاعدة البيانات: ${err.message}</div>`;
+});
+</script>
+</body>
+</html>
