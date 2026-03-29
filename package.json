@@ -1,10 +1,9 @@
 {
   "name": "is-app",
   "version": "1.0.0",
-  "description": "Offline Management System",
-  "author": "AbdoVvip2",
-  "private": true,
   "main": "main.js",
+  "author": "AbdoVvip2",
+  "description": "My App",
   "build": {
     "appId": "com.abdo.isapp",
     "win": {
@@ -12,7 +11,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^25.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
   }
 }

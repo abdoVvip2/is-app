@@ -3,8 +3,6 @@ on: [push]
 jobs:
   release:
     runs-on: windows-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -12,13 +10,13 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
 
       - name: Build EXE
         run: |
           npm install
           npm install electron-builder --save-dev
-          npx electron-builder --win --portable
+          npx electron-builder --win
            
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
