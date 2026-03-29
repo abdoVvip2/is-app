@@ -1,11 +1,11 @@
 {
-  "name": "is-app",
+  "name": "knashi",
   "version": "1.0.0",
   "main": "main.js",
   "author": "AbdoVvip2",
-  "description": "My App",
+  "description": "Knashi Management App",
   "build": {
-    "appId": "com.abdo.isapp",
+    "appId": "com.abdo.knashi",
     "win": {
       "target": "portable"
     }
